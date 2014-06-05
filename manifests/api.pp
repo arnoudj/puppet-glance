@@ -96,6 +96,10 @@
 #   (optional) Whether to enable services.
 #   Defaults to true.
 #
+# [*manage_service*]
+#   (optional) Whether to start/stop the service
+#   Defaults to true
+#
 # [*sql_idle_timeout*]
 #   (optional) Period in seconds after which SQLAlchemy should reestablish its connection
 #   to the database.
@@ -168,6 +172,7 @@ class glance::api(
   $keystone_tenant       = 'services',
   $keystone_user         = 'glance',
   $enabled               = true,
+  $manage_service        = true,
   $sql_idle_timeout      = '3600',
   $sql_connection        = 'sqlite:///var/lib/glance/glance.sqlite',
   $use_syslog            = false,
@@ -388,10 +393,12 @@ class glance::api(
           '/etc/glance/glance-cache.conf']:
   }
 
-  if $enabled {
-    $service_ensure = 'running'
-  } else {
-    $service_ensure = 'stopped'
+  if $manage_service {
+    if $enabled {
+      $service_ensure = 'running'
+    } else {
+      $service_ensure = 'stopped'
+    }
   }
 
   service { 'glance-api':

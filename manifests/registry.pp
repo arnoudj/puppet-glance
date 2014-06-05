@@ -122,6 +122,7 @@ class glance::registry(
   $use_syslog        = false,
   $log_facility      = 'LOG_USER',
   $enabled           = true,
+  $manage_service    = true,
   $purge_config      = false,
   $cert_file         = false,
   $key_file          = false,
@@ -287,21 +288,23 @@ class glance::registry(
           '/etc/glance/glance-registry-paste.ini']:
   }
 
-  if $enabled {
+  Exec['glance-manage db_sync'] ~> Service['glance-registry']
 
-    Exec['glance-manage db_sync'] ~> Service['glance-registry']
+  exec { 'glance-manage db_sync':
+    command     => $::glance::params::db_sync_command,
+    path        => '/usr/bin',
+    user        => 'glance',
+    refreshonly => true,
+    logoutput   => on_failure,
+    subscribe   => [Package['glance'], File['/etc/glance/glance-registry.conf']],
+  }
 
-    exec { 'glance-manage db_sync':
-      command     => $::glance::params::db_sync_command,
-      path        => '/usr/bin',
-      user        => 'glance',
-      refreshonly => true,
-      logoutput   => on_failure,
-      subscribe   => [Package['glance'], File['/etc/glance/glance-registry.conf']],
+  if $manage_service {
+    if $enabled {
+      $service_ensure = 'running'
+    } else {
+      $service_ensure = 'stopped'
     }
-    $service_ensure = 'running'
-  } else {
-    $service_ensure = 'stopped'
   }
 
   service { 'glance-registry':
